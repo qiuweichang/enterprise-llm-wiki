@@ -1,0 +1,4 @@
+关闭三个端口：for %p in (8123 5173 8101) do for /f "tokens=5" %a in ('netstat -ano ^| findstr LISTENING ^| findstr ":%p "') do taskkill /F /PID %a
+
+开启启动：npm run dev
+开启python：.venv\Scripts\python.exe -m uvicorn llm_wiki_worker.main:app --host 127.0.0.1 --port 8101

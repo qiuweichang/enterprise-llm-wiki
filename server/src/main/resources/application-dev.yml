@@ -1,0 +1,9 @@
+llm-wiki:
+  bootstrap:
+    enabled: true
+    email: "1"
+    password: "1"
+  development:
+    allow-insecure-credentials: true
+    account: "1"
+    password: "1"

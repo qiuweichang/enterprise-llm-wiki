@@ -1,0 +1,95 @@
+server:
+  port: ${LLM_WIKI_PORT:8123}
+  shutdown: graceful
+  tomcat:
+    connection-timeout: 10s
+    threads:
+      max: 200
+
+spring:
+  application:
+    name: llm-wiki-server
+  config:
+    # 两个相对位置分别兼容仓库根目录启动与 IDEA 以 server 为工作目录启动；文件仅保存在本机且不提交 Git。
+    import:
+      - optional:file:./server/src/main/resources/application-local.yml
+      - optional:file:./src/main/resources/application-local.yml
+  profiles:
+    # IDEA 或命令行直接运行时自动启用本地开发账号和配置。
+    default: dev
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  datasource:
+    url: ${LLM_WIKI_DB_URL:jdbc:postgresql://localhost:5432/llm_wiki}
+    username: ${LLM_WIKI_DB_USERNAME:postgres}
+    password: ${LLM_WIKI_DB_PASSWORD:123456}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${LLM_WIKI_DB_POOL_SIZE:16}
+      minimum-idle: 2
+      connection-timeout: 10000
+      idle-timeout: 300000
+      max-lifetime: 1800000
+  data:
+    redis:
+      host: ${LLM_WIKI_REDIS_HOST:127.0.0.1}
+      port: ${LLM_WIKI_REDIS_PORT:6379}
+      database: ${LLM_WIKI_REDIS_DATABASE:1}
+      password: ${LLM_WIKI_REDIS_PASSWORD:}
+      timeout: ${LLM_WIKI_REDIS_TIMEOUT:10s}
+      connect-timeout: 5s
+  flyway:
+    enabled: true
+    validate-on-migrate: true
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 120MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+
+llm-wiki:
+  jwt:
+    # 仅用于本地开发；企业部署时必须使用环境变量覆盖为随机密钥。
+    secret: ${LLM_WIKI_JWT_SECRET:llm-wiki-local-jwt-secret-only-for-development-2026}
+    issuer: llm-wiki
+    access-ttl: 15m
+    refresh-ttl: 30d
+  storage:
+    root: ${LLM_WIKI_STORAGE_ROOT:./data}
+  python:
+    base-url: ${LLM_WIKI_PYTHON_BASE_URL:http://127.0.0.1:8101}
+    timeout: ${LLM_WIKI_PYTHON_TIMEOUT:120s}
+  worker:
+    instance-id: ${LLM_WIKI_INSTANCE_ID:${HOSTNAME:local}}
+    lease-duration: 2m
+    poll-delay: 3s
+  bootstrap:
+    enabled: ${LLM_WIKI_BOOTSTRAP_ENABLED:false}
+    email: ${LLM_WIKI_BOOTSTRAP_EMAIL:admin@llm-wiki.local}
+    password: ${LLM_WIKI_BOOTSTRAP_PASSWORD:}
+  llm:
+    base-url: ${LLM_WIKI_LLM_BASE_URL:}
+    api-key: ${LLM_WIKI_LLM_API_KEY:}
+    model: ${LLM_WIKI_LLM_MODEL:}
+    # 保障 IDEA 零配置启动后也能安全保存后台配置的大模型密钥。
+    encryption-key: ${LLM_WIKI_MODEL_ENCRYPTION_KEY:llm-wiki-local-model-encryption-key-only-for-development-2026}
+  development:
+    allow-insecure-credentials: false
+    account: ""
+    password: ""
+
+logging:
+  level:
+    root: INFO
+    com.llmwiki: INFO
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%X{requestId:-}] %logger{36} - %msg%n"
