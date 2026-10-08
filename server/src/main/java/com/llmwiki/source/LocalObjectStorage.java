@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Comparator;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -89,6 +90,27 @@ public class LocalObjectStorage {
         return path;
     }
 
+    /**
+     * 删除指定工作空间的历史原始对象。
+     * 调用方必须在对应数据库清理事务提交后执行；路径由两个 UUID 构造并再次校验，不接受任意外部路径。
+     *
+     * @param organizationId 组织 ID
+     * @param workspaceId 工作空间 ID
+     */
+    public void deleteWorkspaceObjects(UUID organizationId, UUID workspaceId) {
+        Path workspaceRoot = root.resolve(organizationId.toString()).resolve(workspaceId.toString()).normalize();
+        requireInsideRoot(workspaceRoot);
+        if (!Files.exists(workspaceRoot)) return;
+        try (var paths = Files.walk(workspaceRoot)) {
+            paths.sorted(Comparator.reverseOrder()).forEach(path -> {
+                try { Files.deleteIfExists(path); }
+                catch (IOException exception) { throw new ObjectCleanupException(exception); }
+            });
+        } catch (IOException | ObjectCleanupException exception) {
+            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "OBJECT_CLEANUP_FAILED", "历史原始文件清理失败");
+        }
+    }
+
     /** 清理文件名中的目录和控制字符，阻止路径穿越。 */
     private String sanitizeFilename(String filename) {
         String base = filename == null ? "upload.bin" : Path.of(filename).getFileName().toString();
@@ -106,4 +128,9 @@ public class LocalObjectStorage {
     /** 已保存对象的元数据。 */
     public record StoredObject(String objectKey, String absolutePath, String originalFilename,
                                String contentHash, long size, String contentType) { }
+
+    /** 将流式删除 lambda 中的受检异常传回外层统一处理。 */
+    private static final class ObjectCleanupException extends RuntimeException {
+        private ObjectCleanupException(IOException cause) { super(cause); }
+    }
 }

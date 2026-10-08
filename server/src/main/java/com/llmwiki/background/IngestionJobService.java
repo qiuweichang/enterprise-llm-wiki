@@ -152,7 +152,7 @@ public class IngestionJobService {
                         """).param("versionId", sourceVersionId).param("hash", hash).param("sourceId", lease.sourceId()).update();
 
         List<PageCandidate> candidates = compiled.pages().stream()
-                .map(page -> new PageCandidate(page, findCurrentPage(page.slug())))
+                .map(page -> candidateFor(material.source(), page))
                 .toList();
         UUID changeSetId = UUID.randomUUID();
         boolean containsUpdate = candidates.stream().anyMatch(candidate -> candidate.currentPage() != null);
@@ -332,6 +332,30 @@ public class IngestionJobService {
                         (UUID) rs.getObject("id"), (UUID) rs.getObject("current_revision_id"), rs.getString("slug"),
                         rs.getString("title"), rs.getString("page_type"), rs.getString("content_markdown")))
                 .optional().orElse(null);
+    }
+
+    /**
+     * 为编译页面绑定当前已发布版本，并对厂商资讯采用“保留基线、追加动态”的更新语义。
+     * 厂商页承担稳定的模型族谱关系，如果直接用一次资讯摘要整页覆盖，会导致旧 WikiLink 和图谱边丢失。
+     *
+     * @param source 当前资料来源，用 canonical URI 识别官方厂商资讯任务
+     * @param page 模型生成的候选页面
+     * @return 带当前页面快照、且必要时已合并正文的审核候选
+     */
+    private PageCandidate candidateFor(SourceRow source, KnowledgeCompiler.CompiledPage page) {
+        KnowledgeCompiler.CurrentPage existing = findCurrentPage(page.slug());
+        if (existing == null || source.canonicalUri() == null
+                || !source.canonicalUri().startsWith("ai-vendor-news://")) {
+            return new PageCandidate(page, existing);
+        }
+        String updateMarker = "<!-- ai-vendor-news:" + source.canonicalUri() + " -->";
+        String merged = existing.content().contains(updateMarker)
+                ? existing.content()
+                : existing.content().stripTrailing() + "\n\n## 近期动态\n\n" + updateMarker + "\n\n"
+                + page.markdown().strip() + "\n";
+        KnowledgeCompiler.CompiledPage mergedPage = new KnowledgeCompiler.CompiledPage(
+                page.slug(), page.title(), existing.pageType(), merged);
+        return new PageCandidate(mergedPage, existing);
     }
 
     /** 判断任务发起人在当前空间是否仍拥有新增直接发布权限。 */

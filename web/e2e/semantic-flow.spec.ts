@@ -1,0 +1,65 @@
+import { expect, test } from '@playwright/test'
+import path from 'node:path'
+import os from 'node:os'
+
+/** 真实桌面联调：管理索引、测试召回、问 Wiki 及刷新后的历史消息，不 mock 后端接口。 */
+test('semantic management and persistent query flow', async ({ page }) => {
+  test.setTimeout(240_000)
+  const url = process.env.LLM_WIKI_E2E_URL ?? 'http://127.0.0.1:5173'
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  await page.goto(`${url}/login`)
+  await page.getByLabel('账号', { exact: true }).fill('1')
+  await page.getByLabel('密码', { exact: true }).fill('1')
+  await page.getByRole('button', { name: '登录', exact: true }).click()
+  await page.getByRole('link', { name: '模型与 MCP' }).click()
+  // 首次打开登录页没有刷新 Cookie，预期会出现一次认证失败；只统计登录后的应用错误。
+  errors.length = 0
+  await expect(page).toHaveURL(/\/automation$/)
+  await expect(page.getByRole('heading', { name: '语义检索', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '关闭语义检索', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '关闭语义检索', exact: true }).click()
+  await expect(page.getByRole('button', { name: '启用语义检索', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '启用语义检索', exact: true }).click()
+  await expect(page.getByRole('button', { name: '关闭语义检索', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '重建索引', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: '重建语义索引', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '确认重建' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect.poll(async () => {
+    const text = await page.locator('.semantic-summary').innerText()
+    const counts = text.match(/已索引 (\d+) \/ (\d+) 页/)
+    return Boolean(counts && Number(counts[1]) > 0 && counts[1] === counts[2])
+  }, { timeout: 180_000, intervals: [2000] }).toBe(true)
+  await page.getByLabel('语义检索测试问题').fill('擅长写程序的人工智能有哪些')
+  await page.getByRole('button', { name: '测试语义检索', exact: true }).click()
+  await expect(page.locator('.semantic-results')).toContainText('模型调用成功')
+  await expect(page.locator('.semantic-results button').first()).toBeVisible()
+  await page.locator('.semantic-results button').first().click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await expect(page.getByRole('dialog').locator('.markdown-body')).not.toHaveText('加载中…')
+  await page.getByRole('button', { name: '关闭', exact: true }).click()
+  await page.getByRole('button', { name: '索引记录', exact: true }).click()
+  await expect(page.locator('.semantic-jobs article').first()).toContainText('成功')
+  await page.getByRole('button', { name: '关闭', exact: true }).click()
+  await page.screenshot({ path: path.join(os.tmpdir(), 'llm-wiki-semantic-settings.png') })
+
+  await page.getByRole('link', { name: '问 Wiki', exact: true }).click()
+  const newConversation = page.getByRole('button', { name: '新会话', exact: true })
+  await expect(newConversation).toBeVisible()
+  await newConversation.click()
+  await expect(page.getByRole('heading', { name: '开始新会话', exact: true })).toBeVisible()
+  const model = page.getByRole('checkbox', { name: '启用大模型对话' })
+  if (await model.isEnabled()) await model.uncheck()
+  await page.getByPlaceholder('输入问题…').fill('擅长写程序的人工智能有哪些')
+  await page.getByRole('button', { name: '发送', exact: true }).click()
+  await expect(page.locator('.history-list')).toContainText('擅长写程序的人工智能有哪些')
+  await expect(page.locator('.retrieval-status').last()).toHaveText('混合检索', { timeout: 45_000 })
+  await expect(page.locator('.inline-citations button').first()).toBeVisible()
+  await page.reload()
+  await expect(page.locator('.retrieval-status').last()).toHaveText('混合检索')
+  await page.screenshot({ path: path.join(os.tmpdir(), 'llm-wiki-semantic-query.png') })
+  await expect(page.locator('vite-error-overlay')).toHaveCount(0)
+  expect(errors).toEqual([])
+})

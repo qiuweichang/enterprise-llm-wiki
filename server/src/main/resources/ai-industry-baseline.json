@@ -1,0 +1,115 @@
+{
+  "cutoffDate": "2026-07-09",
+  "title": "全球主流 AI 大模型产业",
+  "summary": "截至 2026-07-09 的主流大模型厂商、代表模型版本与官方发布事件。基线只采用厂商官方站点、官方文档或官方代码仓库。",
+  "vendors": [
+    {
+      "name": "OpenAI", "intro": "美国人工智能公司，提供 GPT 与 o 系列模型、API 及 ChatGPT 产品。", "sourceUrl": "https://openai.com/news/",
+      "models": [
+        {"name":"GPT-5.5","releaseDate":"2026-04-23","intro":"面向专业知识工作与复杂推理的 GPT-5 系列版本。","sourceUrl":"https://openai.com/index/introducing-gpt-5-5/"},
+        {"name":"GPT-5.4","releaseDate":"2026-03-05","intro":"统一推理、编码与代理式工作能力的 GPT-5 系列版本。","sourceUrl":"https://openai.com/index/introducing-gpt-5-4/"},
+        {"name":"OpenAI o3","releaseDate":"2025-04-16","intro":"面向复杂推理任务的 o 系列模型。","sourceUrl":"https://openai.com/index/introducing-o3-and-o4-mini/"},
+        {"name":"OpenAI o4-mini","releaseDate":"2025-04-16","intro":"强调成本和速度平衡的小型推理模型。","sourceUrl":"https://openai.com/index/introducing-o3-and-o4-mini/"}
+      ],
+      "news": [{"title":"OpenAI 发布 GPT-5.5","date":"2026-04-23","summary":"OpenAI 发布 GPT-5.5，并随后向 API 开放。","model":"GPT-5.5","sourceUrl":"https://openai.com/index/introducing-gpt-5-5/"}]
+    },
+    {
+      "name": "Anthropic", "intro": "美国人工智能公司，开发 Claude 模型家族，重点关注可靠性、安全性与企业级代理能力。", "sourceUrl": "https://www.anthropic.com/",
+      "models": [
+        {"name":"Claude Fable 5","releaseDate":"2026-06-09","intro":"Claude 5 家族模型，面向高质量通用任务。","sourceUrl":"https://platform.claude.com/docs/en/about-claude/models/overview"},
+        {"name":"Claude Opus 4.8","releaseDate":"2026-05-28","intro":"Claude 4 系列高能力模型，支持长上下文与复杂代理任务。","sourceUrl":"https://platform.claude.com/docs/en/release-notes/overview"},
+        {"name":"Claude Sonnet 4.6","releaseDate":"2026-02-17","intro":"兼顾能力、速度与成本的 Claude Sonnet 模型。","sourceUrl":"https://platform.claude.com/docs/en/about-claude/models/overview"},
+        {"name":"Claude Haiku 4.5","releaseDate":"2025-10-15","intro":"面向低延迟和高吞吐场景的 Claude 小型模型。","sourceUrl":"https://platform.claude.com/docs/en/about-claude/models/overview"}
+      ],
+      "news": [{"title":"Anthropic 发布 Claude Opus 4.8","date":"2026-05-28","summary":"Anthropic 在官方发布记录中推出 Claude Opus 4.8。","model":"Claude Opus 4.8","sourceUrl":"https://platform.claude.com/docs/en/release-notes/overview"}]
+    },
+    {
+      "name": "Google DeepMind", "intro": "Google 的人工智能研究与产品组织，开发 Gemini 多模态模型家族。", "sourceUrl": "https://deepmind.google/",
+      "models": [
+        {"name":"Gemini 3.5 Flash","releaseDate":"2026-05-19","intro":"面向低延迟、多模态和高吞吐任务的 Gemini 模型。","sourceUrl":"https://deepmind.google/models/model-cards/"},
+        {"name":"Gemini Omni Flash","releaseDate":"2026-05-19","intro":"面向多模态实时交互的 Gemini 模型。","sourceUrl":"https://deepmind.google/models/model-cards/"},
+        {"name":"Gemini 3.1 Pro","releaseDate":"2026-02-19","intro":"支持百万级输入上下文的高能力多模态模型。","sourceUrl":"https://deepmind.google/models/model-cards/gemini-3-1-pro"},
+        {"name":"Gemini 3.1 Flash-Lite","releaseDate":"2026-03-03","intro":"强调成本效率的轻量 Gemini 模型。","sourceUrl":"https://deepmind.google/models/model-cards/"}
+      ],
+      "news": [{"title":"Google 发布 Gemini 3.1 Pro","date":"2026-02-19","summary":"Google DeepMind 发布支持长上下文和多模态输入的 Gemini 3.1 Pro。","model":"Gemini 3.1 Pro","sourceUrl":"https://deepmind.google/models/model-cards/gemini-3-1-pro"}]
+    },
+    {
+      "name": "xAI", "intro": "美国人工智能公司，开发 Grok 模型与相关产品。", "sourceUrl": "https://x.ai/",
+      "models": [
+        {"name":"Grok 4.20","releaseDate":"2026-04-07","intro":"Grok 4 系列模型版本，官方提供模型卡说明。","sourceUrl":"https://data.x.ai/2026-04-07-grok-4-20-model-card.pdf"},
+        {"name":"Grok 4.1","releaseDate":"2025-11-17","intro":"Grok 4 系列改进版本。","sourceUrl":"https://x.ai/news/grok-4-1"},
+        {"name":"Grok 4","releaseDate":"2025-07-09","intro":"xAI 的通用推理模型版本。","sourceUrl":"https://x.ai/news/grok-4"},
+        {"name":"Grok 3","releaseDate":"2025-02-19","intro":"xAI 发布的 Grok 第三代模型。","sourceUrl":"https://x.ai/news/grok-3"}
+      ],
+      "news": [{"title":"xAI 发布 Grok 4.20 模型卡","date":"2026-04-07","summary":"xAI 发布 Grok 4.20 的官方模型卡。","model":"Grok 4.20","sourceUrl":"https://data.x.ai/2026-04-07-grok-4-20-model-card.pdf"}]
+    },
+    {
+      "name": "字节跳动 Seed", "intro": "字节跳动基础模型研究团队，研发豆包大模型以及语言、语音、视频和三维生成模型。", "sourceUrl": "https://seed.bytedance.com/zh/",
+      "models": [
+        {"name":"Doubao-Seed-2.0","releaseDate":"2026-02-14","intro":"包含 Pro、Lite、Mini 与 Code 版本的豆包基础模型系列。","sourceUrl":"https://seed.bytedance.com/zh/blog/seed-2-0-official-launch"},
+        {"name":"Seedance 2.0","releaseDate":"2026-02-12","intro":"字节跳动 Seed 的视频生成模型。","sourceUrl":"https://seed.bytedance.com/blog/seedance-2-0-official-launch"},
+        {"name":"Seeduplex","releaseDate":"2026-04-09","intro":"支持自然打断与全双工交互的语音大模型。","sourceUrl":"https://seed.bytedance.com/zh/blog/introducing-seed-full-duplex-speech-llm-attentive-listening-robust-interference-suppression-enabling-more-natural-interaction"},
+        {"name":"Seed3D 2.0","releaseDate":"2026-04-23","intro":"面向高精度三维内容生成的模型版本。","sourceUrl":"https://seed.bytedance.com/zh/blog/seed3d-2-0-released-higher-precision-and-greater-usability"}
+      ],
+      "news": [{"title":"字节跳动发布 Doubao-Seed-2.0","date":"2026-02-14","summary":"Seed 团队发布 Doubao-Seed-2.0 系列。","model":"Doubao-Seed-2.0","sourceUrl":"https://seed.bytedance.com/zh/blog/seed-2-0-official-launch"}]
+    },
+    {
+      "name": "Moonshot AI", "intro": "月之暗面旗下人工智能团队，开发 Kimi 助手及 Kimi K 系列模型。", "sourceUrl": "https://www.moonshot.cn/",
+      "models": [
+        {"name":"Kimi K2.5","releaseDate":"2026-01-27","intro":"原生多模态、代理式混合专家模型，总参数约一万亿、激活参数约 320 亿，支持 256K 上下文。","sourceUrl":"https://github.com/MoonshotAI/Kimi-K2.5"},
+        {"name":"Kimi K2","releaseDate":"2025-07-11","intro":"面向代理能力与代码任务的开放权重混合专家模型。","sourceUrl":"https://github.com/MoonshotAI/Kimi-K2"}
+      ],
+      "news": [{"title":"Moonshot AI 开源 Kimi K2.5","date":"2026-01-27","summary":"Moonshot AI 发布 Kimi K2.5 官方代码仓库与模型说明。","model":"Kimi K2.5","sourceUrl":"https://github.com/MoonshotAI/Kimi-K2.5"}]
+    },
+    {
+      "name": "MiniMax 稀宇科技", "intro": "中国人工智能公司，研发 MiniMax 文本、语音、视频及音乐模型。", "sourceUrl": "https://www.minimaxi.com/",
+      "models": [
+        {"name":"MiniMax M2.7","releaseDate":"2026-03-18","intro":"面向复杂生产任务与代理工作流的 MiniMax 模型。","sourceUrl":"https://www.minimaxi.com/blog/minimax-m27"},
+        {"name":"MiniMax M2.5","releaseDate":"2026-02-12","intro":"强调编码、工具调用与生产效率的模型版本。","sourceUrl":"https://www.minimaxi.com/news/minimax-m25"},
+        {"name":"MiniMax M2.1","releaseDate":"2025-12-23","intro":"MiniMax M2 系列迭代版本。","sourceUrl":"https://platform.minimaxi.com/docs/api-reference/api-overview"},
+        {"name":"MiniMax Hailuo 02","releaseDate":"2025-06-18","intro":"面向视频生成的 MiniMax 模型。","sourceUrl":"https://platform.minimaxi.com/docs/api-reference/api-overview"}
+      ],
+      "news": [{"title":"MiniMax 发布 M2.7","date":"2026-03-18","summary":"MiniMax 发布 M2.7，面向复杂生产任务和代理工作流。","model":"MiniMax M2.7","sourceUrl":"https://www.minimaxi.com/blog/minimax-m27"}]
+    },
+    {
+      "name": "智谱 Z.ai", "intro": "智谱旗下大模型品牌与开放平台，开发 GLM 语言和多模态模型。", "sourceUrl": "https://z.ai/",
+      "models": [
+        {"name":"GLM-5.2","releaseDate":"2026-06-16","intro":"面向长程任务的 GLM 模型，支持百万级上下文。","sourceUrl":"https://z.ai/blog/glm-5.2"},
+        {"name":"GLM-5.1","releaseDate":"2026-04-07","intro":"GLM-5 系列迭代版本。","sourceUrl":"https://docs.z.ai/release-notes/new-released"},
+        {"name":"GLM-5","releaseDate":"2026-02-12","intro":"智谱新一代通用语言模型。","sourceUrl":"https://z.ai/blog/glm-5"},
+        {"name":"GLM-Image","releaseDate":"2026-01-14","intro":"智谱图像生成模型。","sourceUrl":"https://z.ai/blog/glm-image"}
+      ],
+      "news": [{"title":"智谱发布 GLM-5.2","date":"2026-06-16","summary":"智谱发布面向长程任务的 GLM-5.2。","model":"GLM-5.2","sourceUrl":"https://z.ai/blog/glm-5.2"}]
+    },
+    {
+      "name": "DeepSeek", "intro": "中国人工智能公司，开发 DeepSeek 通用、推理与代码模型，并提供兼容式 API。", "sourceUrl": "https://www.deepseek.com/",
+      "models": [
+        {"name":"DeepSeek-V4-Pro","releaseDate":"2026-04-24","intro":"DeepSeek V4 高能力 API 模型。","sourceUrl":"https://api-docs.deepseek.com/updates/"},
+        {"name":"DeepSeek-V4-Flash","releaseDate":"2026-04-24","intro":"DeepSeek V4 强调速度与成本效率的 API 模型。","sourceUrl":"https://api-docs.deepseek.com/updates/"},
+        {"name":"DeepSeek-V3.2","releaseDate":"2025-12-01","intro":"同时支持非思考与思考模式的 DeepSeek 模型版本。","sourceUrl":"https://api-docs.deepseek.com/updates/"},
+        {"name":"DeepSeek-R1","releaseDate":"2025-01-20","intro":"DeepSeek 的推理模型系列。","sourceUrl":"https://api-docs.deepseek.com/updates/"}
+      ],
+      "news": [{"title":"DeepSeek API 发布 V4-Pro 与 V4-Flash","date":"2026-04-24","summary":"DeepSeek API 上线 V4-Pro 与 V4-Flash。","model":"DeepSeek-V4-Pro","sourceUrl":"https://api-docs.deepseek.com/updates/"}]
+    },
+    {
+      "name": "阿里通义千问", "intro": "阿里巴巴大模型团队，研发 Qwen 通义千问语言、多模态与代码模型。", "sourceUrl": "https://qwenlm.github.io/",
+      "models": [
+        {"name":"Qwen3-235B-A22B","releaseDate":"2025-04-29","intro":"Qwen3 旗舰开放权重混合专家模型，支持思考与非思考模式。","sourceUrl":"https://qwenlm.github.io/blog/qwen3/"},
+        {"name":"Qwen3-30B-A3B","releaseDate":"2025-04-29","intro":"Qwen3 高效率混合专家模型。","sourceUrl":"https://qwenlm.github.io/blog/qwen3/"},
+        {"name":"Qwen3-32B","releaseDate":"2025-04-29","intro":"Qwen3 开放权重稠密模型。","sourceUrl":"https://qwenlm.github.io/blog/qwen3/"},
+        {"name":"Qwen3-8B","releaseDate":"2025-04-29","intro":"面向本地和轻量部署的 Qwen3 稠密模型。","sourceUrl":"https://qwenlm.github.io/blog/qwen3/"}
+      ],
+      "news": [{"title":"阿里发布 Qwen3 模型家族","date":"2025-04-29","summary":"Qwen 团队发布并开放 Qwen3 多个 MoE 与稠密模型。","model":"Qwen3-235B-A22B","sourceUrl":"https://qwenlm.github.io/blog/qwen3/"}]
+    },
+    {
+      "name": "Meta Llama", "intro": "Meta 的开放权重基础模型项目，服务研究、开发与企业部署生态。", "sourceUrl": "https://ai.meta.com/llama/",
+      "models": [
+        {"name":"Llama 4 Maverick","releaseDate":"2025-04-05","intro":"Llama 4 原生多模态混合专家模型。","sourceUrl":"https://ai.meta.com/blog/llama-4-multimodal-intelligence/"},
+        {"name":"Llama 4 Scout","releaseDate":"2025-04-05","intro":"Llama 4 家族的高效率长上下文多模态模型。","sourceUrl":"https://ai.meta.com/blog/llama-4-multimodal-intelligence/"},
+        {"name":"Llama 3.3 70B","releaseDate":"2024-12-06","intro":"Llama 3 系列的多语言指令模型。","sourceUrl":"https://ai.meta.com/blog/llamacon-llama-news/"},
+        {"name":"Llama 3.1 405B","releaseDate":"2024-07-23","intro":"支持 128K 上下文的 Llama 3.1 旗舰开放权重模型。","sourceUrl":"https://ai.meta.com/blog/llama-usage-doubled-may-through-july-2024/"}
+      ],
+      "news": [{"title":"Meta 发布 Llama 4 Scout 与 Maverick","date":"2025-04-05","summary":"Meta 发布 Llama 4 Scout 和 Llama 4 Maverick 原生多模态模型。","model":"Llama 4 Maverick","sourceUrl":"https://ai.meta.com/blog/llama-4-multimodal-intelligence/"}]
+    }
+  ]
+}

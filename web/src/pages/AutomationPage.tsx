@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { Badge, EmptyState, Modal, Notice, PageHeader, timeAgo } from '../components/Ui'
 import { ApiError, apiRequest } from '../lib/api'
+import { SemanticPanel } from '../components/SemanticPanel'
 
 interface ApiKeyView { id: string; name: string; tokenPrefix: string; expiresAt?: string; lastUsedAt?: string; revokedAt?: string; createdAt: string }
 interface CreatedApiKey { id: string; name: string; token: string; expiresAt?: string }
@@ -25,6 +26,7 @@ export default function AutomationPage() {
   return <div className="standard-page automation-page"><PageHeader title="模型与 MCP" actions={canUseMcp ? <button className="button primary" onClick={() => setCreateOpen(true)}><Plus size={16} />创建 MCP 密钥</button> : null} />
     {canManageModel && model.data ? <ModelConfiguration key={`${model.data.source}-${model.data.updatedAt ?? ''}`} model={model.data} onSaved={(value) => queryClient.setQueryData(['model-settings'], value)} /> : null}
 
+    {canManageModel ? <SemanticPanel /> : null}
     {canUseMcp ? <div className="automation-grid">
       <section className="panel"><div className="panel-header"><div><h2><Network size={18} />MCP 接入</h2><p>协议版本 2025-03-26</p></div><span className="live-status"><i />可用</span></div><Notice kind="success"><CheckCircle2 size={16} />MCP 工具继承组织、空间和权限；更新已有页面仍会进入审核。</Notice><div className="code-card"><header><span>客户端配置</span><button onClick={() => navigator.clipboard.writeText(mcpConfig())}><Copy size={14} />复制</button></header><pre>{mcpConfig()}</pre></div><div className="tool-list"><span>llm_wiki_query</span><span>llm_wiki_list_pages</span><span>llm_wiki_propose_page</span><span>llm_wiki_add_text_source</span><span>llm_wiki_review_change</span></div></section>
       <section className="panel"><div className="panel-header"><div><h2><KeyRound size={18} />接口密钥</h2><p>仅在创建时显示一次</p></div><button className="icon-button" aria-label="刷新 MCP 密钥" onClick={() => keys.refetch()}><RefreshCw size={15} /></button></div><div className="key-list">{keys.data?.map((key) => <article key={key.id} className={key.revokedAt ? 'revoked' : ''}><span className="key-icon"><FileKey2 size={17} /></span><div><strong>{key.name}</strong><small>{key.tokenPrefix}•••• · 创建于 {timeAgo(key.createdAt)}</small><em>{key.revokedAt ? '已撤销' : key.lastUsedAt ? `最近使用 ${timeAgo(key.lastUsedAt)}` : '尚未使用'}</em></div>{!key.revokedAt ? <button className="icon-button danger" onClick={() => revoke.mutate(key.id)} aria-label="撤销"><Trash2 size={15} /></button> : null}</article>)}{!keys.isLoading && !keys.data?.length ? <EmptyState icon={<KeyRound size={24} />} title="还没有接口密钥" description="为 MCP 客户端创建当前空间的密钥。" /> : null}</div></section>

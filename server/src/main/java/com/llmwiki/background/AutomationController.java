@@ -25,17 +25,20 @@ public class AutomationController {
     private final ModelConnectionTestService modelConnectionTestService;
     private final EvolutionRunService evolutionRunService;
     private final AiScheduledTaskService aiScheduledTaskService;
+    private final AiIndustryBaselineService aiIndustryBaselineService;
 
     /** 创建自动化控制器。 */
     public AutomationController(AutomationSettingsService settingsService, ModelSettingsService modelSettingsService,
                                 ModelConnectionTestService modelConnectionTestService,
                                 EvolutionRunService evolutionRunService,
-                                AiScheduledTaskService aiScheduledTaskService) {
+                                AiScheduledTaskService aiScheduledTaskService,
+                                AiIndustryBaselineService aiIndustryBaselineService) {
         this.settingsService = settingsService;
         this.modelSettingsService = modelSettingsService;
         this.modelConnectionTestService = modelConnectionTestService;
         this.evolutionRunService = evolutionRunService;
         this.aiScheduledTaskService = aiScheduledTaskService;
+        this.aiIndustryBaselineService = aiIndustryBaselineService;
     }
 
     /** 读取设置。 */
@@ -130,5 +133,13 @@ public class AutomationController {
     @RequiresPermission("AUTOMATION_READ")
     public List<AiScheduledTaskService.RunView> taskRuns(@RequestParam(defaultValue = "100") int limit) {
         return aiScheduledTaskService.listRuns(limit);
+    }
+
+    /** 清空当前空间旧知识并导入截止日期明确的主流 AI 厂商官方基线。 */
+    @PostMapping("/ai-industry/reset-and-import")
+    @RequiresPermission("AUTOMATION_MANAGE")
+    public AiIndustryBaselineService.ImportResult resetAndImportAiIndustry(
+            @RequestBody AiIndustryBaselineService.ResetRequest request) {
+        return aiIndustryBaselineService.resetAndImport(request);
     }
 }

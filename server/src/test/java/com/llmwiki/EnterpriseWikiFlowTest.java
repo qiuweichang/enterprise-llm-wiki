@@ -66,6 +66,10 @@ class EnterpriseWikiFlowTest {
     private ObjectMapper objectMapper;
     @Autowired
     private DataSource dataSource;
+    @Autowired private com.llmwiki.query.SemanticIndexService semanticIndex;
+    @Autowired private com.llmwiki.query.EmbeddingClient embeddings;
+    @Autowired private com.llmwiki.query.QueryRetrievalService retrieval;
+    @Autowired private com.llmwiki.query.QueryService queries;
 
     /**
      * 将动态容器连接、测试 JWT 和首个管理员引导配置注入应用。
@@ -92,7 +96,12 @@ class EnterpriseWikiFlowTest {
         registry.add("llm-wiki.bootstrap.enabled", () -> true);
         registry.add("llm-wiki.bootstrap.email", () -> ADMIN_EMAIL);
         registry.add("llm-wiki.bootstrap.password", () -> ADMIN_PASSWORD);
+        // dev 配置会规范化首个管理员；测试库必须与登录夹具使用同一身份，不能被默认账号 1 覆盖。
+        registry.add("llm-wiki.development.account", () -> ADMIN_EMAIL);
+        registry.add("llm-wiki.development.password", () -> ADMIN_PASSWORD);
         registry.add("llm-wiki.worker.poll-delay", () -> "30s");
+        // 测试显式领取任务，以确定性验证失效令牌；生产调度器仍默认开启。
+        registry.add("llm-wiki.semantic.worker-enabled", () -> "false");
     }
 
     /**
@@ -183,8 +192,100 @@ class EnterpriseWikiFlowTest {
         JsonNode login = objectMapper.readTree(body);
         String token = login.path("accessToken").asText();
         assertThat(token).isNotBlank();
-        return new LoginSession(token, UUID.fromString(login.path("user").path("organizationId").asText()),
+        return new LoginSession(token, UUID.fromString(login.path("user").path("id").asText()), UUID.fromString(login.path("user").path("organizationId").asText()),
                 UUID.fromString(login.path("user").path("workspaceId").asText()));
+    }
+
+    /** 真 PostgreSQL + 真 Python 向量：语义命中、审核隔离、过期租约、更新/归档和跨空间隔离。 */
+    @Test
+    void semanticIndexShouldFollowPublishedRevisionsAndTenantBoundary() throws Exception {
+        var login=login();
+        var auth=new com.llmwiki.security.AuthenticatedUser(login.userId(),login.organizationId(),login.workspaceId(),null,"","",0,java.util.Set.of());
+        String title="差旅规则-"+UUID.randomUUID();
+        String body="出差住宿费每晚最高报销五百元，须提供酒店发票。";
+        JsonNode created=semanticPost("/api/pages",login.token(),java.util.Map.of("title",title,"pageType","TOPIC","contentMarkdown",body));
+        UUID id=UUID.fromString(created.path("pageId").asText());
+        String question="住旅馆花的钱公司给报多少";
+        assertThat(retrieval.retrieve(auth,question)).extracting(com.llmwiki.query.QueryRetrievalService.RetrievedPage::id).doesNotContain(id);
+        drainSemanticJobs();
+        var vector=embeddings.embed(java.util.List.of(question),true).getFirst();
+        assertThat(retrieval.retrieve(auth,question,vector,0.5)).extracting(com.llmwiki.query.QueryRetrievalService.RetrievedPage::id).contains(id);
+        semanticIndex.settings(auth,false,0.5);
+        var keywordOnly=queries.queryForUser(auth,question,question,"",false);
+        assertThat(keywordOnly.retrievalMode()).isEqualTo("KEYWORD");
+        assertThat(keywordOnly.citations()).extracting(com.llmwiki.query.QueryService.Citation::pageId).doesNotContain(id);
+        semanticIndex.settings(auth,true,0.5);
+        var hybrid=queries.queryForUser(auth,question,question,"",false);
+        assertThat(hybrid.retrievalMode()).isEqualTo("HYBRID");
+        assertThat(hybrid.citations()).extracting(com.llmwiki.query.QueryService.Citation::pageId).contains(id);
+        String originalFingerprint=semanticIndex.snapshot(auth).fingerprint();
+
+        // 提案未批准时，发布版本及其可查询向量不变。
+        var proposal=semanticPost("/api/pages",login.token(),java.util.Map.of("pageId",id,"title",title,"pageType","TOPIC","contentMarkdown","苹果树需要修剪枝叶、及时浇水。"));
+        assertThat(semanticIndex.snapshot(auth).fingerprint()).isEqualTo(originalFingerprint);
+        assertThat(retrieval.retrieve(auth,question,vector,0.5)).extracting(com.llmwiki.query.QueryRetrievalService.RetrievedPage::id).contains(id);
+        semanticPost("/api/reviews/"+proposal.path("changeSetId").asText()+"/approve",login.token(),java.util.Map.of("comment","语义版本测试"));
+        assertThat(semanticIndex.snapshot(auth).fingerprint()).isNotEqualTo(originalFingerprint);
+        assertThat(queries.queryForUser(auth,question,question,"",false).citations())
+                .extracting(com.llmwiki.query.QueryService.Citation::pageId).doesNotContain(id);
+        assertThat(retrieval.retrieve(auth,question,vector,0.5)).extracting(com.llmwiki.query.QueryRetrievalService.RetrievedPage::id).doesNotContain(id);
+
+        // 重建改变 generation 和令牌，即使旧任务完成也不得覆盖新的任务。
+        var stale=semanticIndex.claim().orElseThrow();
+        var staleUser=new com.llmwiki.security.AuthenticatedUser(null,stale.org(),stale.workspace(),null,"","",0,java.util.Set.of());
+        semanticIndex.rebuild(staleUser);
+        assertThat(semanticIndex.complete(stale,java.util.List.of("过期结果"),java.util.List.of(vector))).isFalse();
+        drainSemanticJobs();
+        assertThat(retrieval.retrieve(auth,question,vector,0.5)).extracting(com.llmwiki.query.QueryRetrievalService.RetrievedPage::id).doesNotContain(id);
+
+        var other=new com.llmwiki.security.AuthenticatedUser(null,login.organizationId(),UUID.randomUUID(),null,"","",0,java.util.Set.of());
+        assertThat(retrieval.retrieve(other,"苹果",vector,0)).isEmpty();
+        assertThat(semanticIndex.jobs(other)).isEmpty();
+
+        var archived=semanticPost("/api/pages/"+id+"/archive",login.token(),java.util.Map.of());
+        semanticPost("/api/reviews/"+archived.path("changeSetId").asText()+"/approve",login.token(),java.util.Map.of("comment","归档测试"));
+        assertThat(retrieval.retrieve(auth,"苹果",vector,0)).extracting(com.llmwiki.query.QueryRetrievalService.RetrievedPage::id).doesNotContain(id);
+    }
+
+    /** 验证长文档尾部命中能传入回答上下文、失败状态保留并可通过重建恢复。 */
+    @Test
+    void semanticChunksShouldExposeTailAndRecoverFailedJobs() throws Exception {
+        var login=login();
+        var auth=new com.llmwiki.security.AuthenticatedUser(null,login.organizationId(),login.workspaceId(),null,"","",0,java.util.Set.of());
+        var created=semanticPost("/api/pages",login.token(),java.util.Map.of("title","长文档-"+UUID.randomUUID(),"pageType","TOPIC",
+                "contentMarkdown","苹果种植需要适量浇水。".repeat(650)+"\n出差住宿费每晚最高报销五百元，须提供酒店发票。"));
+        UUID id=UUID.fromString(created.path("pageId").asText());
+        var lease=semanticIndex.claim().orElseThrow();
+        semanticIndex.fail(lease,new IllegalStateException("测试：Python 暂时不可用"));
+        var leaseUser=new com.llmwiki.security.AuthenticatedUser(null,lease.org(),lease.workspace(),null,"","",0,java.util.Set.of());
+        assertThat(semanticIndex.jobs(leaseUser)).anySatisfy(job->assertThat(job.get("lastError")).isEqualTo("测试：Python 暂时不可用"));
+        semanticIndex.rebuild(leaseUser);
+        drainSemanticJobs();
+        var vector=embeddings.embed(java.util.List.of("住旅馆花的钱公司给报多少"),true).getFirst();
+        assertThat(retrieval.retrieve(auth,"住旅馆花的钱公司给报多少",vector,0.5))
+                .anySatisfy(page->{assertThat(page.id()).isEqualTo(id);assertThat(page.contentMarkdown()).contains("五百元").hasSizeLessThan(1000);});
+        mockMvc.perform(get("/api/semantic")).andExpect(status().isUnauthorized());
+    }
+
+    /** 在隔离测试库通过正式接口创建提案/批准，不通过 SQL 绕过发布流程。 */
+    private JsonNode semanticPost(String path,String token,Object payload) throws Exception {
+        return objectMapper.readTree(mockMvc.perform(post(path).header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsBytes(payload)))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+    }
+
+    /** 用真实模型排空有界测试数据集；任务提交使用与生产相同的原子提交方法。 */
+    private void drainSemanticJobs() {
+        for(int round=0;round<300;round++) {
+            var candidate=semanticIndex.claim();
+            if(candidate.isEmpty()) return;
+            var lease=candidate.get();
+            var chunks=com.llmwiki.query.EmbeddingClient.chunks(lease.title(),lease.markdown());
+            java.util.List<java.util.List<Double>> vectors=new java.util.ArrayList<>();
+            for(int i=0;i<chunks.size();i+=16) vectors.addAll(embeddings.embed(chunks.subList(i,Math.min(i+16,chunks.size())),false));
+            assertThat(semanticIndex.complete(lease,chunks,vectors)).isTrue();
+        }
+        throw new AssertionError("测试任务未在限定次数内完成");
     }
 
     /**
@@ -249,5 +350,5 @@ class EnterpriseWikiFlowTest {
     }
 
     /** 集成测试登录后需要复用的短期凭证与租户标识。 */
-    private record LoginSession(String token, UUID organizationId, UUID workspaceId) { }
+    private record LoginSession(String token, UUID userId, UUID organizationId, UUID workspaceId) { }
 }

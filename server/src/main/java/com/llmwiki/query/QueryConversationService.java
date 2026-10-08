@@ -138,7 +138,7 @@ public class QueryConversationService {
         List<MessageView> messages = jdbc.sql("""
                         select id, role, status, content_markdown, citations::text as citations,
                                cache_hit, duration_ms, answer_mode, model_provider, model_name,
-                               error_message, created_at, finished_at
+                               error_message, created_at, finished_at, retrieval_mode, retrieval_message
                         from query_messages where conversation_id = :conversationId order by sequence_no
                         """).param("conversationId", conversationId).query((rs, rowNum) -> new MessageView(
                         (UUID) rs.getObject("id"), rs.getString("role"), rs.getString("status"),
@@ -146,7 +146,7 @@ public class QueryConversationService {
                         rs.getBoolean("cache_hit"), (Long) rs.getObject("duration_ms"),
                         rs.getString("answer_mode"), rs.getString("model_provider"), rs.getString("model_name"),
                         rs.getString("error_message"), rs.getTimestamp("created_at").toInstant(),
-                        nullableInstant(rs.getTimestamp("finished_at")))).list();
+                        nullableInstant(rs.getTimestamp("finished_at")),rs.getString("retrieval_mode"),rs.getString("retrieval_message"))).list();
         return new ConversationDetail(header.id(), header.title(), header.createdAt(), header.updatedAt(), messages);
     }
 
@@ -235,12 +235,14 @@ public class QueryConversationService {
                         update query_messages set status = 'SUCCEEDED', content_markdown = :content,
                             citations = cast(:citations as jsonb), cache_hit = :cacheHit, duration_ms = :durationMs,
                             answer_mode = :answerMode, model_provider = :modelProvider, model_name = :modelName,
+                            retrieval_mode=:retrievalMode,retrieval_message=:retrievalMessage,
                             lease_owner = null, lease_until = null, finished_at = now()
                         where id = :id and lease_owner = :owner and status = 'RUNNING'
                         """).param("content", response.answerMarkdown()).param("citations", json(response.citations()))
                 .param("cacheHit", response.cacheHit()).param("durationMs", response.durationMs())
                 .param("answerMode", response.answerMode()).param("modelProvider", response.modelProvider())
                 .param("modelName", response.modelName())
+                .param("retrievalMode",response.retrievalMode()).param("retrievalMessage",response.retrievalMessage())
                 .param("id", lease.messageId()).param("owner", properties.worker().instanceId()).update();
         if (updated != 1) {
             throw new IllegalStateException("Query message lease was lost before completion");
@@ -354,7 +356,7 @@ public class QueryConversationService {
     public record MessageView(UUID id, String role, String status, String contentMarkdown,
                               List<QueryService.Citation> citations, boolean cacheHit, Long durationMs,
                               String answerMode, String modelProvider, String modelName, String errorMessage,
-                              Instant createdAt, Instant finishedAt) { }
+                              Instant createdAt, Instant finishedAt,String retrievalMode,String retrievalMessage) { }
     /** 提交结果。 */
     public record SubmitResult(UUID conversationId, UUID assistantMessageId) { }
     /** 后台回答租约。 */

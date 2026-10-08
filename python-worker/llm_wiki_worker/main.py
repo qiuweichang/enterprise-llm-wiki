@@ -34,7 +34,12 @@ class Settings(BaseSettings):
     # 本地启动时 Java 模块以 server 为工作目录，二者必须指向同一原始对象根目录。
     storage_root: Path = Path("../server/data")
     allow_private_urls: bool = False
-    allowed_hosts: str = ""
+    # 定时资讯任务只允许这些经过代码审查的官方域名绕过企业 DNS 映射检查；任意用户 URL 仍执行完整 SSRF 校验。
+    allowed_hosts: str = (
+        "openai.com,www.openai.com,platform.openai.com,developers.openai.com,platform.claude.com,docs.anthropic.com,deepmind.google,"
+        "x.ai,docs.x.ai,seed.bytedance.com,github.com,raw.githubusercontent.com,www.minimaxi.com,minimaxi.com,"
+        "docs.z.ai,z.ai,api-docs.deepseek.com,qwenlm.github.io,ai.meta.com"
+    )
     max_download_bytes: int = 20 * 1024 * 1024
     request_timeout_seconds: float = 30.0
     whisper_model: str = "small"
@@ -48,6 +53,8 @@ class Settings(BaseSettings):
 
 settings = Settings()
 app = FastAPI(title="LLM Wiki Python Worker", version="1.0.0")
+from .embeddings import router as embeddings_router
+app.include_router(embeddings_router)
 
 
 class WebExtractRequest(BaseModel):

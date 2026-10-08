@@ -91,7 +91,7 @@ public class AnswerComposer {
         pages.stream().limit(5).forEach(page -> answer.append("- **").append(page.title()).append("**：")
                 .append(firstMeaningfulParagraph(page.contentMarkdown())).append(" [")
                 .append(citation.getAndIncrement()).append("]\n"));
-        answer.append("\n> 这是无外部模型配置时的抽取式回答；引用仍指向具体 Wiki 修订，可逐项核验。");
+        // 生成方式由 answerMode 单独展示；主动关闭聊天模型不等于“没有配置模型”。
         return answer.toString();
     }
 

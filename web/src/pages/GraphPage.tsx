@@ -113,6 +113,7 @@ export default function GraphPage() {
               const dimmed = activeNodeId !== null && !connectedIds.has(node.id)
               const active = node.id === activeNodeId || node.id === focusNodeId
               return <g key={node.id} role="button" tabIndex={0} aria-label={`打开 ${node.title}`} className={`graph-node graph-${node.pageType.toLowerCase()} ${dimmed ? 'dimmed' : ''} ${active ? 'active' : ''}`} transform={`translate(${node.x} ${node.y})`} onClick={() => { if (!nodeMoved.current) openNode(node.id) }} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openNode(node.id) } }} onPointerEnter={() => setHoverNodeId(node.id)} onPointerLeave={() => setHoverNodeId(null)} onPointerDown={(event) => { event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); nodeMoved.current = false; beginNodeDrag(node.id) }} onPointerMove={(event) => { if (!event.currentTarget.hasPointerCapture(event.pointerId)) return; if (Math.abs(event.movementX) + Math.abs(event.movementY) > 1) nodeMoved.current = true; moveNode(node.id, graphDelta(event.movementX) / zoom, graphDelta(event.movementY) / zoom) }} onPointerUp={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); endNodeDrag() }} onPointerCancel={endNodeDrag}>
+                <circle className="graph-node-hit" r={Math.max(18, node.radius + 10)} />
                 <circle r={node.radius} filter={active ? 'url(#node-glow)' : undefined} />
                 {showLabels ? <text textAnchor="middle" y={node.radius + 16}>{truncate(node.title, 20)}</text> : null}
                 <title>{node.title}</title>
@@ -255,7 +256,13 @@ function useForceLayout(snapshot: GraphSnapshot, settings: LayoutSettings) {
 function graphNeighbors(snapshot: GraphSnapshot | undefined, nodeId: string) {
   if (!snapshot) return []
   const nodes = new Map(snapshot.nodes.map((node) => [node.id, node]))
-  return snapshot.edges.flatMap((edge) => { const otherId = edge.fromPageId === nodeId ? edge.toPageId : edge.toPageId === nodeId ? edge.fromPageId : null; const node = otherId ? nodes.get(otherId) : null; return node ? [{ ...node, relationType: edge.relationType }] : [] })
+  const unique = new Map<string, GraphNode & { relationType: string }>()
+  snapshot.edges.forEach((edge) => {
+    const otherId = edge.fromPageId === nodeId ? edge.toPageId : edge.toPageId === nodeId ? edge.fromPageId : null
+    const node = otherId ? nodes.get(otherId) : null
+    if (node) unique.set(`${node.id}-${edge.relationType}`, { ...node, relationType: edge.relationType })
+  })
+  return [...unique.values()]
 }
 
 /** 将后端关系类型转换为简洁中文。 */

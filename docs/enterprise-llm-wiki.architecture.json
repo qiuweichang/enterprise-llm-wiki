@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Enterprise LLM Wiki 底层架构与核心链路",
+    "locale": "zh-CN",
+    "output": "enterprise-llm-wiki-architecture.html",
+    "quality_profile": "showcase",
+    "viewBox": [1320, 720],
+    "repository": {
+      "url": "https://github.com/qiuweichang/enterprise-llm-wiki",
+      "revision": "7d01c5f4f099fe0038f0b067e2072f4b51303da6"
+    },
+    "views": [
+      {
+        "id": "ingestion-path",
+        "label": "来源摄取与发布",
+        "focus": ["member", "web", "domain", "postgres", "pythonWorker", "llm"],
+        "note": "来源先落库排队，事务外提取与编译，再经审核或权限策略发布为不可变修订。"
+      },
+      {
+        "id": "query-path",
+        "label": "问 Wiki",
+        "focus": ["member", "web", "domain", "redis", "postgres", "llm"],
+        "note": "查询先看空间版本缓存，再做 PostgreSQL 混合检索和图扩展，最后生成带修订级引用的回答。"
+      },
+      {
+        "id": "security-path",
+        "label": "租户与权限",
+        "focus": ["member", "mcpClient", "domain", "postgres"],
+        "note": "JWT 或 API Key 只建立候选身份；数据库会话、RBAC 与 FORCE RLS 共同执行最终隔离。"
+      },
+      {
+        "id": "automation-path",
+        "label": "持续演化与定时任务",
+        "focus": ["domain", "postgres", "llm", "pythonWorker"],
+        "note": "数据库租约支持多实例接管；AI 结果仍转成来源或审核提案，不直接覆盖已发布知识。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "member",
+      "type": "external",
+      "label": "企业成员",
+      "sublabel": "管理员 / 编辑 / 审核 / 阅读",
+      "pos": [30, 300],
+      "size": [150, 72],
+      "sources": [{"path": "README.md", "label": "项目定位与角色"}]
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "React 19 管理台",
+      "sublabel": "Vite · Router · TanStack Query",
+      "pos": [260, 300],
+      "size": [190, 78],
+      "sources": [
+        {"path": "web/src/App.tsx", "label": "页面路由"},
+        {"path": "web/src/lib/api.ts", "label": "请求与令牌刷新"}
+      ]
+    },
+    {
+      "id": "mcpClient",
+      "type": "external",
+      "label": "AI Agent / MCP Client",
+      "sublabel": "Streamable HTTP JSON-RPC",
+      "pos": [260, 535],
+      "size": [190, 72],
+      "sources": [{"path": "server/src/main/java/com/llmwiki/mcp/McpController.java", "label": "MCP 工具入口"}]
+    },
+    {
+      "id": "domain",
+      "type": "backend",
+      "label": "Java 21 模块化单体",
+      "sublabel": "接入 · 领域 · 调度 · 导出",
+      "tag": "Spring Boot 3.4",
+      "pos": [610, 300],
+      "size": [220, 84],
+      "sources": [
+        {"path": "server/src/main/java/com/llmwiki/security/AuthenticationInterceptor.java", "label": "认证入口"},
+        {"path": "server/src/main/java/com/llmwiki/background/IngestionCoordinator.java", "label": "后台协调"},
+        {"path": "server/src/main/java/com/llmwiki/review/ReviewService.java", "label": "审核发布"}
+      ]
+    },
+    {
+      "id": "redis",
+      "type": "database",
+      "label": "Redis",
+      "sublabel": "查询结果 + workspace epoch",
+      "tag": "可失效的派生缓存",
+      "pos": [1040, 70],
+      "size": [190, 72],
+      "sources": [{"path": "server/src/main/java/com/llmwiki/cache/WikiCacheService.java", "label": "缓存与版本戳"}]
+    },
+    {
+      "id": "postgres",
+      "type": "database",
+      "label": "PostgreSQL 16",
+      "sublabel": "事实源 · RLS · 修订 · 任务租约",
+      "tag": "唯一事实源",
+      "pos": [1030, 300],
+      "size": [210, 84],
+      "sources": [
+        {"path": "server/src/main/resources/db/migration/V1__enterprise_core.sql", "label": "核心数据模型"},
+        {"path": "server/src/main/resources/db/migration/V3__least_privilege_runtime_role.sql", "label": "运行时降权"}
+      ]
+    },
+    {
+      "id": "pythonWorker",
+      "type": "backend",
+      "label": "Python FastAPI Worker",
+      "sublabel": "网页 · DOCX/PDF · OCR · 转写",
+      "tag": "重型依赖隔离",
+      "pos": [1030, 535],
+      "size": [210, 80],
+      "sources": [
+        {"path": "python-worker/llm_wiki_worker/main.py", "label": "提取与安全校验"},
+        {"path": "server/src/main/java/com/llmwiki/source/LocalObjectStorage.java", "label": "共享原始对象"}
+      ]
+    },
+    {
+      "id": "llm",
+      "type": "external",
+      "label": "OpenAI Compatible LLM",
+      "sublabel": "编译 · 回答 · 演化分析",
+      "tag": "空间级加密配置",
+      "pos": [625, 70],
+      "size": [190, 72],
+      "sources": [
+        {"path": "server/src/main/java/com/llmwiki/background/OpenAiCompatibleClient.java", "label": "统一模型客户端"},
+        {"path": "server/src/main/java/com/llmwiki/background/ModelSettingsService.java", "label": "模型配置解析"}
+      ]
+    }
+  ],
+  "connections": [
+    {"id": "member-web", "from": "member", "to": "web", "label": "桌面 Web", "variant": "emphasis"},
+    {"id": "web-domain", "from": "web", "to": "domain", "label": "REST + Bearer JWT", "variant": "security"},
+    {"id": "mcp-domain", "from": "mcpClient", "to": "domain", "label": "JSON-RPC + JWT/API Key", "variant": "security"},
+    {"id": "domain-postgres", "from": "domain", "to": "postgres", "label": "Spring JDBC 短事务", "labelAt": [990, 430]},
+    {"id": "domain-redis", "from": "domain", "to": "redis", "label": "查询缓存 + epoch"},
+    {"id": "domain-python", "from": "domain", "to": "pythonWorker", "label": "事务外 HTTP/1.1 提取", "variant": "dashed"},
+    {"id": "domain-llm", "from": "domain", "to": "llm", "label": "事务外 Chat Completions", "variant": "dashed", "fromSide": "top", "toSide": "bottom"}
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "核心思想",
+      "items": [
+        "不是每次提问都重读原始资料，而是先把资料持续编译为可维护 Wiki",
+        "PostgreSQL 保存事实；Redis、关系索引和 Obsidian 都是可重建投影"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "一致性、安全与追溯",
+      "items": [
+        "来源版本、页面修订、证据、审核、审计与 Outbox 形成完整证据链",
+        "JWT/API Key、RBAC 与 FORCE RLS 隔离租户；已有知识更新必须审核"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "异步与容错",
+      "items": [
+        "数据库任务表承担可靠队列：SKIP LOCKED 分片、租约过期接管、指数退避和死信",
+        "Python/LLM 网络调用不占用数据库事务；模型失败时关键链路有确定性或抽取式降级"
+      ]
+    }
+  ]
+}

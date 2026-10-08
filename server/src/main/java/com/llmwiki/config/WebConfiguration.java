@@ -46,7 +46,9 @@ public class WebConfiguration implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:5173", "http://127.0.0.1:5173")
+                // 5175 用于本地并行联调，避免占用个人网站的 5173；不允许任意来源或通配符。
+                .allowedOrigins("http://localhost:5173", "http://127.0.0.1:5173",
+                        "http://localhost:5175", "http://127.0.0.1:5175")
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)
